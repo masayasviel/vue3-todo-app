@@ -2,15 +2,18 @@
 import { computed } from 'vue';
 import { TaskInterface } from '@/interfaces/task.interface';
 
+/** props */
 const props = defineProps<{
   title: string;
   tasks: TaskInterface[]
 }>();
 
+/** emit */
 const emit = defineEmits<{
   (e: 'onClickTask', uuid: string): void;
 }>();
 
+/** 所属タスク */
 const tasks = computed(() => [...props.tasks]);
 </script>
 

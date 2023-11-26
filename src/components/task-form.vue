@@ -1,16 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
+/** 入力値 */
 const taskInput = ref('');
+/** フォームルール */
 const rules = {
   maxlength: (value: string) => value.length < 30 || 'cannot input string length over 30',
 }
+
+/** emit */
 const emit = defineEmits<{
   (e: 'addTask', taskInput: string): void;
   (e: 'inputValueEmpty'): void;
 }>();
+
+/** ボタンの活性制御 */
 const buttonDisabled = computed(() => taskInput.value.length > 30);
 
+/** 新しいタスクの追加 */
 function addNewTask() {
   const inputValue = taskInput.value;
   if (!inputValue) {
