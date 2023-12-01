@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import {ref, reactive, onMounted} from 'vue';
 import TaskForm from '@/components/task-form.vue';
 import Category from '@/components/category.vue';
 import { ITEM_STATE, ItemStateLiteral, TaskInterface } from '@/interfaces/task.interface';
+import { getTaskList, createNewTask, updateStatus, deleteTask } from '@/functions';
 
 /** --- 管理 --- */
 
@@ -34,103 +35,73 @@ const finishCategory = ref<TaskInterface[]>([]);
  * 現在選択されているUUID
  * @private
  */
-let _currentUuid = '';
-/**
- * UUIDとタスクの対応付け
- * @private
- */
-const _currentStatus = new Map<string, TaskInterface>();
+let _currentSelectUuid = '';
+
+/** --- life cycle --- */
+
+onMounted(async () => {
+  await _getTaskList();
+});
 
 /** --- public method --- */
 
 /** スナックバー表示 */
-function showSnackbar() {
+function showSnackbar(): void {
   snackbar.isShow = true;
 }
 
 /** スナックバー非表示 */
-function closeSnackbar() {
+function closeSnackbar(): void {
   snackbar.isShow = false;
 }
 
 /** タスクの追加 */
-function addNewTask(input: string): void {
-  const uuid = window.crypto.randomUUID();
-  const newTask: TaskInterface = {
-    title: input,
-    uuid,
-    status: '未着手',
-  };
-  notStartedYetCategory.value.push(newTask);
-  _currentStatus.set(uuid, newTask);
+async function addNewTask(input: string): Promise<void> {
+  await createNewTask(input);
+  await _getTaskList();
+  snackbar.text = 'タスクを追加しました';
+  showSnackbar();
 }
 
 /** 空文字でタスクを追加しようとしたとき */
-function inputValueEmpty() {
+function inputValueEmpty(): void {
   snackbar.text = '空文字だけの追加はできません';
   showSnackbar();
 }
 
 /** タスククリックでダイアログを表示 */
-function onClickTask(uuid: string) {
-  _currentUuid = uuid;
-  stateModel.value = _currentStatus.get(uuid)!.status;
+function onClickTask(uuid: string, status: ItemStateLiteral): void {
+  _currentSelectUuid = uuid;
+  stateModel.value = status;
   dialog.isShow = true;
 }
 
 /** タスクの進行状態変更 */
-function onClickCategoryChangeButton() {
-  const targetTask = _currentStatus.get(_currentUuid)!;
-  _deleteTask();
-  targetTask.status = stateModel.value;
-  switch (stateModel.value) {
-    case '未着手':
-      notStartedYetCategory.value.push(targetTask);
-      break;
-    case '進行':
-      wipCategory.value.push(targetTask);
-      break;
-    case '完了':
-      finishCategory.value.push(targetTask);
-      break;
-    default:
-      break;
-  }
-  _currentStatus.set(_currentUuid, targetTask);
+async function onClickCategoryChangeButton(): Promise<void> {
+  await updateStatus(_currentSelectUuid, stateModel.value);
+  await _getTaskList();
   dialog.isShow = false;
-  _currentUuid = '';
+  _currentSelectUuid = '';
   snackbar.text = `${stateModel.value}に変更しました`;
   showSnackbar();
 }
 
 /** タスク削除 */
-function onClickDeleteTask() {
-  _deleteTask();
+async function onClickDeleteTask(): Promise<void> {
+  await deleteTask(_currentSelectUuid);
+  await _getTaskList();
   dialog.isShow = false;
-  _currentUuid = '';
+  _currentSelectUuid = '';
   snackbar.text = `削除しました`;
   showSnackbar();
 }
 
 /** --- private method --- */
-
-/**
- * タスク削除
- * @private
- */
-function _deleteTask() {
-  switch (_currentStatus.get(_currentUuid)!.status) {
-    case '未着手':
-      notStartedYetCategory.value = notStartedYetCategory.value.filter((v) => v.uuid !== _currentUuid);
-      break;
-    case '進行':
-      wipCategory.value = wipCategory.value.filter((v) => v.uuid !== _currentUuid);
-      break;
-    case '完了':
-      finishCategory.value = finishCategory.value.filter((v) => v.uuid !== _currentUuid);
-      break;
-  }
-  _currentStatus.delete(_currentUuid);
+async function _getTaskList(): Promise<void> {
+  const taskList = await getTaskList();
+  notStartedYetCategory.value = taskList.notStartedYetCategory;
+  wipCategory.value = taskList.wipCategory;
+  finishCategory.value = taskList.finishCategory;
 }
 </script>
 

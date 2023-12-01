@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { TaskInterface } from '@/interfaces/task.interface';
+import { TaskInterface, ItemStateLiteral } from '@/interfaces/task.interface';
 
 /** props */
 const props = defineProps<{
-  title: string;
+  title: ItemStateLiteral;
   tasks: TaskInterface[]
 }>();
 
 /** emit */
 const emit = defineEmits<{
-  (e: 'onClickTask', uuid: string): void;
+  (e: 'onClickTask', uuid: string, status: ItemStateLiteral): void;
 }>();
 
 /** 所属タスク */
@@ -27,7 +27,7 @@ const tasks = computed(() => [...props.tasks]);
         v-for="task in tasks"
         :key="task.uuid"
         class="task-item"
-        @click="emit('onClickTask', task.uuid)"
+        @click="emit('onClickTask', task.uuid, props.title)"
       >
         <v-list-item-title v-text="task.title"></v-list-item-title>
       </v-list-item>
